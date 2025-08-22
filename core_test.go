@@ -2,6 +2,7 @@ package httperr
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/require"
@@ -299,6 +300,56 @@ func TestError_Write(t *testing.T) {
 		e.Write(w)
 		require.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
 		require.Equal(t, "bar", w.Header().Get("X-Foo"))
+	})
+}
+
+func TestError_MarshalJSON(t *testing.T) {
+	e := New(http.StatusBadRequest, "fooey").
+		WithCause(errors.New("cause")).
+		AddReasons(struct {
+			Reason string `json:"reason"`
+		}{Reason: "bar"})
+	t.Run("default", func(t *testing.T) {
+		j, err := json.Marshal(e)
+		require.NoError(t, err)
+		fmt.Println(string(j))
+		m := map[string]any{}
+		require.NoError(t, json.Unmarshal(j, &m))
+		require.Len(t, m, 2)
+		require.Equal(t, "fooey", m[ptyError])
+		require.Len(t, m[ptyReasons], 1)
+	})
+	t.Run("with cause", func(t *testing.T) {
+		DefaultErrorWriterShowCause = true
+		defer func() {
+			DefaultErrorWriterShowCause = false
+		}()
+		j, err := json.Marshal(e)
+		require.NoError(t, err)
+		fmt.Println(string(j))
+		m := map[string]any{}
+		require.NoError(t, json.Unmarshal(j, &m))
+		require.Len(t, m, 3)
+		require.Equal(t, "fooey", m[ptyError])
+		require.Len(t, m[ptyReasons], 1)
+		require.Equal(t, "cause", m[ptyCause])
+	})
+	t.Run("with stack", func(t *testing.T) {
+		DefaultErrorWriterShowStack = true
+		DefaultPackageName = "httperr/"
+		defer func() {
+			DefaultErrorWriterShowStack = false
+			DefaultPackageName = ""
+		}()
+		j, err := json.Marshal(e)
+		require.NoError(t, err)
+		fmt.Println(string(j))
+		m := map[string]any{}
+		require.NoError(t, json.Unmarshal(j, &m))
+		require.Len(t, m, 3)
+		require.Equal(t, "fooey", m[ptyError])
+		require.Len(t, m[ptyReasons], 1)
+		require.Len(t, m[ptyStack], 2)
 	})
 }
 

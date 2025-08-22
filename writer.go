@@ -31,7 +31,7 @@ const (
 	ptyError        = "$error"
 	ptyReasons      = "$reasons"
 	ptyCause        = "$cause"
-	prtStack        = "$stack"
+	ptyStack        = "$stack"
 	hdrContentType  = "Content-Type"
 	applicationJson = "application/json"
 )
@@ -52,7 +52,7 @@ func (ew *errorWriter) WriteError(err error, w http.ResponseWriter) {
 				for i, f := range stack {
 					info[i] = fmt.Sprintf("%s:%d", f.Function, f.Line)
 				}
-				body[prtStack] = info
+				body[ptyStack] = info
 			}
 		}
 		if reasons := et.Reasons(); len(reasons) > 0 {

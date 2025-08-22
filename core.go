@@ -1,6 +1,7 @@
 package httperr
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -102,6 +103,26 @@ type httpError struct {
 var _ error = (*httpError)(nil)
 var _ HttpError = (*httpError)(nil)
 var _ fmt.Formatter = (*httpError)(nil)
+
+func (e *httpError) MarshalJSON() ([]byte, error) {
+	m := map[string]any{
+		ptyError: e.message,
+	}
+	if e.reasons != nil {
+		m[ptyReasons] = e.reasons
+	}
+	if e.cause != nil && DefaultErrorWriterShowCause {
+		m[ptyCause] = e.cause.Error()
+	}
+	if len(e.stack) > 0 && DefaultErrorWriterShowStack {
+		info := make([]string, len(e.stack))
+		for i, f := range e.stack {
+			info[i] = fmt.Sprintf("%s:%d", f.Function, f.Line)
+		}
+		m[ptyStack] = info
+	}
+	return json.Marshal(m)
+}
 
 func (e *httpError) StatusCode() int {
 	return e.status

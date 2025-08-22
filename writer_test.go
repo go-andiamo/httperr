@@ -64,7 +64,7 @@ func TestDefaultErrorWriter(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, body, 2)
 		require.Equal(t, "whoops", body[ptyError])
-		stack, ok := body[prtStack].([]any)
+		stack, ok := body[ptyStack].([]any)
 		require.True(t, ok)
 		require.Len(t, stack, 1)
 		entry := stack[0].(string)
