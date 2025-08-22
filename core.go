@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"runtime"
+	"slices"
 	"strings"
 )
 
@@ -206,11 +207,7 @@ func getStackInfo() StackInfo {
 	frames := runtime.CallersFrames(pc[:n])
 	for frame, more := frames.Next(); more && len(result) < int(MaxStackDepth); frame, more = frames.Next() {
 		if DefaultPackageFilter != nil || DefaultPackageName != "" {
-			full, short := packageFromFunction(frame.Function)
-			if DefaultPackageFilter != nil && !DefaultPackageFilter.Include(full) {
-				continue
-			}
-			if DefaultPackageName != "" && DefaultPackageName != short {
+			if !packageMatch(packageFromFunction(frame.Function)) {
 				continue
 			}
 		}
@@ -219,7 +216,22 @@ func getStackInfo() StackInfo {
 	return result
 }
 
-func packageFromFunction(name string) (full string, short string) {
+func packageMatch(full string, short string, parts []string) bool {
+	result := true
+	if DefaultPackageFilter != nil && !DefaultPackageFilter.Include(full) {
+		result = false
+	}
+	if result && DefaultPackageName != "" {
+		if strings.HasSuffix(DefaultPackageName, "/") {
+			result = slices.Contains(parts, DefaultPackageName[:len(DefaultPackageName)-1])
+		} else {
+			result = DefaultPackageName == short
+		}
+	}
+	return result
+}
+
+func packageFromFunction(name string) (full string, short string, parts []string) {
 	full = name
 	if s := strings.LastIndexByte(full, '/'); s >= 0 {
 		if d := strings.IndexByte(name[s+1:], '.'); d >= 0 {
@@ -230,5 +242,5 @@ func packageFromFunction(name string) (full string, short string) {
 		full = full[:d]
 		short = full
 	}
-	return full, short
+	return full, short, strings.Split(full, "/")
 }

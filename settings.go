@@ -57,6 +57,8 @@ var DefaultPackageFilter PackageFilter
 
 // DefaultPackageName is the default (short) package name to be used to check which packages
 // are to be captured for the errors stack info
+//
+// if this var ends with "/", then any package that contains this name is included
 var DefaultPackageName string
 
 // MaxStackDepth is the maximum stack depth to capture

@@ -119,6 +119,20 @@ func TestError_StackInfo(t *testing.T) {
 		require.Contains(t, si[0].Function, "TestError_StackInfo")
 		require.Equal(t, ln, si[0].Line)
 	})
+	t.Run("with DefaultPackageName (starts with)", func(t *testing.T) {
+		DefaultPackageName = "httperr/"
+		defer func() {
+			DefaultPackageName = ""
+		}()
+		ln := lineNumber() + 1
+		e := New(http.StatusBadRequest, "fooey")
+		require.Error(t, e)
+		si := e.StackInfo()
+		require.Len(t, si, 1)
+		require.True(t, strings.HasPrefix(si[0].Function, "github.com/go-andiamo/httperr"))
+		require.Contains(t, si[0].Function, "TestError_StackInfo")
+		require.Equal(t, ln, si[0].Line)
+	})
 	t.Run("with DefaultPackageFilter", func(t *testing.T) {
 		DefaultPackageFilter = &testPackageFilter{}
 		defer func() {
@@ -289,13 +303,15 @@ func TestError_Write(t *testing.T) {
 }
 
 func TestPackageFromFunction(t *testing.T) {
-	full, short := packageFromFunction("github.com/go-andiamo/httperr.TestSomething.func2")
+	full, short, parts := packageFromFunction("github.com/go-andiamo/httperr.TestSomething.func2")
 	require.Equal(t, "github.com/go-andiamo/httperr", full)
 	require.Equal(t, "httperr", short)
+	require.Equal(t, []string{"github.com", "go-andiamo", "httperr"}, parts)
 
-	full, short = packageFromFunction("httperr.TestSomething.func2")
+	full, short, parts = packageFromFunction("httperr.TestSomething.func2")
 	require.Equal(t, "httperr", full)
 	require.Equal(t, "httperr", short)
+	require.Equal(t, []string{"httperr"}, parts)
 }
 
 func lineNumber() int {
